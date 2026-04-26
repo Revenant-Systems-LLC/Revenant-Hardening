@@ -407,6 +407,12 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# RSH generated reports
+report.json
+report.html
+*.rsh.json
+*.rsh.html
+
 # VS Code files for those working on multiple tools
 .vscode/*
 !.vscode/settings.json

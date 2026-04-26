@@ -1,0 +1,18 @@
+using RevenantHardening.Core.Models;
+
+namespace RevenantHardening.Core;
+
+public sealed record ScanOptions(
+    string ScanPath,
+    string Format,
+    string? OutputFile,
+    bool Offline,
+    bool Roast,
+    Severity MinSeverity,
+    string[] Includes,
+    string[] Excludes
+)
+{
+    public static ScanOptions Default(string path) =>
+        new(path, "console", null, false, false, Severity.Low, [], []);
+}
