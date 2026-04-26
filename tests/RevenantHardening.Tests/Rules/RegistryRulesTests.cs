@@ -143,6 +143,42 @@ public class RegistryRulesTests
         Assert.Empty(rule.Analyze(ctx));
     }
 
+    // RSH-REG-004
+
+    [Fact]
+    public void SetAccessControlRule_Triggers_OnHklmDirectChain()
+    {
+        var rule = new SetAccessControlRule();
+        var ctx = Cs("""
+            void Fix()
+            {
+                var key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\MyApp", true);
+                var acl = key?.GetAccessControl();
+                if (acl is not null) key?.SetAccessControl(acl);
+            }
+            """);
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-REG-004", findings[0].RuleId);
+        Assert.Equal(Severity.High, findings[0].Severity);
+    }
+
+    [Fact]
+    public void SetAccessControlRule_DoesNotTrigger_OnHkcuKey()
+    {
+        var rule = new SetAccessControlRule();
+        var ctx = Cs("""
+            void Fix()
+            {
+                var key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\MyApp", true);
+                key?.SetAccessControl(new RegistrySecurity());
+            }
+            """);
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
     private static FileContext Cs(string code) =>
         new FileContext("test.cs", "test.cs", $"using Microsoft.Win32;\n{code}");
 }

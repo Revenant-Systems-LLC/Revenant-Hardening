@@ -1,4 +1,4 @@
-# CLAUDE.md – Revenant Hardening (RSH) v0.1
+# CLAUDE.md – Revenant Hardening (RSH) v0.1 → v0.2
 
 You are working on **Revenant Hardening (RSH)**, a Windows‑focused security and deployment sanity scanner for **AI‑coded desktop apps**.
 
@@ -9,7 +9,7 @@ RSH is a **micro‑tool**, not a platform.
 - It prints clean findings and a simple score/letter grade.
 - It outputs to **console**, **JSON**, and **HTML**.
 
-v0.1 is deliberately small. Do **not** expand scope without explicit instructions.
+**v0.1 is complete** (17 rules, 95 tests). The next milestone is **v0.2**. Do **not** implement v0.2 features unless explicitly instructed.
 
 ---
 
@@ -37,18 +37,17 @@ Stronger version:
   - Dangerous process/assembly loading patterns.
   - Embedded secrets in common .NET project surfaces.
 
-**What RSH v0.1 does NOT do**
+**What RSH v0.1 does NOT do (reserved for v0.2)**
 
-These are explicitly **out of scope** for v0.1. Do not implement them unless the spec is updated:
-
-- Deep P/Invoke / maRSHaling analysis.
+- XAML injection pattern detection.
+- Deep P/Invoke / marshaling analysis.
 - Full ACL / filesystem permission analysis.
-- Installer signing chain validation.
 - Binary inspection or disassembly.
 - Runtime verification / dynamic analysis.
 - Network calls to third‑party services.
 - CI integrations beyond emitting JSON (no GitHub app, no pipelines).
 - Multi‑language analysis beyond the .NET/Windows surfaces listed below.
+- Installer signing chain validation.
 
 ---
 
@@ -102,7 +101,7 @@ Ask before deviating significantly from this structure.
 
 ## 3. v0.1 scope – rule groups and surfaces
 
-RSH v0.1 implements **four** rule groups. Each rule group has a small number of concrete rules.
+RSH v0.1 implements **four** rule groups with **17** rules total.
 
 ### 3.1 File types and surfaces to scan
 
@@ -141,6 +140,9 @@ Initial rules:
 - `RSH-MSIX-003` — Suspicious test/debug signing artifact
   - Detect obvious test/debug certs, sideload‑only hints, or mismatched publisher IDs that suggest debug packaging leaking to prod.
 
+- `RSH-MSIX-004` — Custom URI protocol in manifest
+  - Detect `<uap:Protocol>` registration in `Package.appxmanifest`. Any custom URI scheme creates an external invocation surface; flag for argument‑validation review.
+
 #### B. Registry + elevation audit – `RSH-REG-*`
 
 Goal: detect **unsafe registry writes and elevation assumptions**.
@@ -155,6 +157,9 @@ Initial rules:
 
 - `RSH-REG-003` — Elevation‑sensitive write without elevation guard
   - Detect registry writes to protected locations where there is **no clear elevation check** or manifest alignment (e.g., code assumes elevation that may not exist).
+
+- `RSH-REG-004` — `RegistryKey.SetAccessControl` on protected hive
+  - Detect calls to `SetAccessControl` on HKLM/HKCR keys. AI‑generated code often calls this to "fix" access‑denied errors without understanding the privilege‑escalation risk.
 
 #### C. Dangerous execution / load audit – `RSH-EXEC-*`
 
@@ -174,6 +179,9 @@ Initial rules:
 - `RSH-EXEC-004` — Custom URI command registration pattern detected
   - Detect patterns of registering custom URI handlers (e.g., via registry) that might allow launching executables with unsanitized arguments.
 
+- `RSH-EXEC-005` — `Process.Start` with interpolated/formatted string argument (Critical)
+  - Detect `Process.Start(...)` where any argument is an interpolated string (`$"..."`), a `string.Format(...)` call, or a string concatenation containing a non‑literal operand. These are near‑certain injection vectors and are escalated to Critical severity. EXEC‑001 defers to this rule for those patterns.
+
 #### D. Embedded secrets scan – `RSH-SEC-*`
 
 Goal: detect **hardcoded secrets and credentials** in .NET project surfaces.
@@ -188,6 +196,22 @@ Initial rules:
 
 - `RSH-SEC-003` — Credential‑like value in project metadata
   - Detect secrets embedded in project files (e.g., `csproj` properties holding tokens, passwords, or keys).
+
+- `RSH-SEC-004` — Hardcoded connection string in source code (Critical)
+  - Detect string literals in `.cs` files that contain ADO.NET connection strings with embedded passwords, or database URIs (MongoDB, PostgreSQL, MySQL) with embedded credentials. Checks Roslyn string literal tokens only — avoids matching comments or disabled code.
+
+---
+
+## 3a. v0.2 planned scope
+
+The following are **planned for v0.2** and must NOT be implemented in v0.1:
+
+- **XAML injection** — detect binding expressions or loaded XAML paths that could inject markup from user input.
+- **P/Invoke / marshaling audit** — detect unsafe P/Invoke patterns (e.g., `CharSet.None`, unchecked buffer sizes, `BOOL` vs `bool` mismatches).
+- **ACL / filesystem permission analysis** — detect `Directory.SetAccessControl`, `File.SetAccessControl`, or `DirectorySecurity` patterns granting broad access.
+- **Binary inspection** — scan compiled `*.dll`/`*.exe` artifacts for known‑bad patterns or embedded secrets (requires PE parsing, out of scope for text‑only scan).
+
+Do not start any v0.2 work without an explicit instruction to begin v0.2.
 
 ---
 

@@ -25,4 +25,13 @@ public class RegistryService
         hklm?.SetValue("Installed", "true");
         hklm?.SetValue("Version", "1.0.0");
     }
+
+    public void FixPermissions()
+    {
+        // RSH-REG-004: SetAccessControl on HKLM key
+        using var hklm = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\CursedApp", true);
+        var acl = hklm?.GetAccessControl();
+        if (acl is not null)
+            hklm?.SetAccessControl(acl);
+    }
 }

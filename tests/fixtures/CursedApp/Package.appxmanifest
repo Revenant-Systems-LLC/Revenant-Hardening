@@ -33,6 +33,14 @@
                           Square44x44Logo="Assets\Square44x44Logo.png"
                           Description="CursedApp" BackgroundColor="transparent">
       </uap:VisualElements>
+      <!-- RSH-MSIX-004: custom URI protocol registration -->
+      <Extensions>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="cursedapp">
+            <uap:DisplayName>CursedApp Protocol</uap:DisplayName>
+          </uap:Protocol>
+        </uap:Extension>
+      </Extensions>
     </Application>
   </Applications>
 

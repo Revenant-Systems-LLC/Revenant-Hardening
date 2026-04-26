@@ -1,6 +1,7 @@
 using RevenantHardening.Core.Models;
 using RevenantHardening.Rules.Execution;
 using Xunit;
+#pragma warning disable CS8625 // null literal for non-nullable — intentional in test snippets
 
 namespace RevenantHardening.Tests.Rules;
 
@@ -155,6 +156,81 @@ public class ExecutionRulesTests
     {
         var rule = new UriHandlerRule();
         var ctx = Cs(@"Registry.SetValue(@""HKEY_CURRENT_USER\SOFTWARE\MyApp"", ""Version"", ""1.0"");");
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
+    // RSH-EXEC-005
+
+    [Fact]
+    public void ProcessStartInterpolationRule_Triggers_OnInterpolatedFirstArg()
+    {
+        var rule = new ProcessStartInterpolationRule();
+        var ctx = Cs("Process.Start($\"cmd /c {userCmd}\");");
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-EXEC-005", findings[0].RuleId);
+        Assert.Equal(Severity.Critical, findings[0].Severity);
+    }
+
+    [Fact]
+    public void ProcessStartInterpolationRule_Triggers_OnInterpolatedSecondArg()
+    {
+        var rule = new ProcessStartInterpolationRule();
+        var ctx = Cs("Process.Start(\"cmd.exe\", $\"/c {userInput}\");");
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-EXEC-005", findings[0].RuleId);
+    }
+
+    [Fact]
+    public void ProcessStartInterpolationRule_Triggers_OnStringFormatArg()
+    {
+        var rule = new ProcessStartInterpolationRule();
+        var ctx = Cs("Process.Start(string.Format(\"cmd /c {0}\", input));");
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-EXEC-005", findings[0].RuleId);
+    }
+
+    [Fact]
+    public void ProcessStartInterpolationRule_Triggers_OnConcatWithVariable()
+    {
+        var rule = new ProcessStartInterpolationRule();
+        var ctx = Cs("Process.Start(\"cmd /c \" + userCmd);");
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-EXEC-005", findings[0].RuleId);
+    }
+
+    [Fact]
+    public void ProcessStartInterpolationRule_DoesNotTrigger_OnLiteralArgs()
+    {
+        var rule = new ProcessStartInterpolationRule();
+        var ctx = Cs("Process.Start(\"notepad.exe\", \"file.txt\");");
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
+    [Fact]
+    public void ProcessStartInterpolationRule_DoesNotTrigger_OnLiteralConcatOnly()
+    {
+        var rule = new ProcessStartInterpolationRule();
+        var ctx = Cs("Process.Start(\"note\" + \"pad.exe\");");
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
+    [Fact]
+    public void ProcessStartRule_DoesNotTrigger_OnInterpolatedArg_DeferredToExec005()
+    {
+        // EXEC-001 must NOT fire when EXEC-005 would fire, to avoid duplicate findings
+        var rule = new ProcessStartRule();
+        var ctx = Cs("Process.Start(\"cmd.exe\", $\"/c {userInput}\");");
 
         Assert.Empty(rule.Analyze(ctx));
     }

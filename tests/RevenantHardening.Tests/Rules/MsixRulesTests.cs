@@ -107,6 +107,32 @@ public class MsixRulesTests
         Assert.Empty(rule.Analyze(ctx));
     }
 
+    // RSH-MSIX-004
+
+    [Fact]
+    public void UapProtocolRule_Triggers_OnProtocolElement()
+    {
+        var rule = new UapProtocolRule();
+        var ctx = ManifestWithExtensions(@"
+            <uap:Extension Category=""windows.protocol"">
+              <uap:Protocol Name=""myapp"" />
+            </uap:Extension>");
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-MSIX-004", findings[0].RuleId);
+        Assert.Equal(Severity.Medium, findings[0].Severity);
+    }
+
+    [Fact]
+    public void UapProtocolRule_DoesNotTrigger_OnManifestWithoutProtocol()
+    {
+        var rule = new UapProtocolRule();
+        var ctx = Manifest("<Capabilities><Capability Name=\"internetClient\" /></Capabilities>");
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
     private static FileContext Manifest(string capabilitiesXml, string publisher = "CN=TestPublisher") =>
         new FileContext(
             Path: "Package.appxmanifest",
@@ -118,6 +144,27 @@ public class MsixRulesTests
                   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
                   <Identity Name="TestApp" Publisher="{publisher}" Version="1.0.0.0" />
                   {capabilitiesXml}
+                </Package>
+                """
+        );
+
+    private static FileContext ManifestWithExtensions(string extensionsXml) =>
+        new FileContext(
+            Path: "Package.appxmanifest",
+            RelativePath: "Package.appxmanifest",
+            Content: $"""
+                <?xml version="1.0" encoding="utf-8"?>
+                <Package
+                  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+                  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10">
+                  <Identity Name="TestApp" Publisher="CN=Real, O=Corp" Version="1.0.0.0" />
+                  <Applications>
+                    <Application Id="App">
+                      <Extensions>
+                        {extensionsXml}
+                      </Extensions>
+                    </Application>
+                  </Applications>
                 </Package>
                 """
         );

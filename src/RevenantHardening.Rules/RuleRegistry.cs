@@ -14,21 +14,25 @@ public static class RuleRegistry
         new MsixCapabilityRule(),
         new RunFullTrustRule(),
         new DebugSigningRule(),
+        new UapProtocolRule(),
 
         // RSH-REG-*
         new HklmWriteRule(),
         new WritableHandleRule(),
         new ElevationGuardRule(),
+        new SetAccessControlRule(),
 
         // RSH-EXEC-*
         new ProcessStartRule(),
         new UseShellExecuteRule(),
         new AssemblyLoadRule(),
         new UriHandlerRule(),
+        new ProcessStartInterpolationRule(),
 
         // RSH-SEC-*
         new ApiKeyPatternRule(),
         new ResourceSecretRule(),
         new ProjectMetadataSecretRule(),
+        new ConnectionStringInCodeRule(),
     ];
 }

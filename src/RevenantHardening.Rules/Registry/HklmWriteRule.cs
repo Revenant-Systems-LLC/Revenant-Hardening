@@ -80,7 +80,7 @@ public sealed class HklmWriteRule : IRule
         _ => false
     };
 
-    private static bool EnclosingMethodReferencesHklm(SyntaxNode node)
+    internal static bool EnclosingMethodReferencesHklm(SyntaxNode node)
     {
         var method = node.Ancestors()
             .FirstOrDefault(a => a is MethodDeclarationSyntax or LocalFunctionStatementSyntax

@@ -27,6 +27,12 @@ public class ProcessService
         Process.Start(toolName);
     }
 
+    public void RunCommand(string userCommand)
+    {
+        // RSH-EXEC-005: interpolated string passed to Process.Start
+        Process.Start("cmd.exe", $"/c {userCommand}");
+    }
+
     public void LoadPlugin(string pluginPath)
     {
         // RSH-EXEC-003

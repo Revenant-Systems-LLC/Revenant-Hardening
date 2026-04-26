@@ -116,6 +116,60 @@ public class SecretsRulesTests
         Assert.Empty(rule.Analyze(ctx));
     }
 
+    // RSH-SEC-004
+
+    [Fact]
+    public void ConnectionStringInCodeRule_Triggers_OnAdoNetConnStr()
+    {
+        var rule = new ConnectionStringInCodeRule();
+        var ctx = Cs("string conn = \"Server=prod;Initial Catalog=mydb;User Id=sa;Password=S3cr3t!\";");
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-SEC-004", findings[0].RuleId);
+        Assert.Equal(Severity.Critical, findings[0].Severity);
+    }
+
+    [Fact]
+    public void ConnectionStringInCodeRule_Triggers_OnMongoUri()
+    {
+        var rule = new ConnectionStringInCodeRule();
+        var ctx = Cs("var uri = \"mongodb://admin:hunter2secret@mongo.internal:27017\";");
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-SEC-004", findings[0].RuleId);
+    }
+
+    [Fact]
+    public void ConnectionStringInCodeRule_Triggers_OnPostgresUri()
+    {
+        var rule = new ConnectionStringInCodeRule();
+        var ctx = Cs("var uri = \"postgres://user:hunter2@db.internal/mydb\";");
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-SEC-004", findings[0].RuleId);
+    }
+
+    [Fact]
+    public void ConnectionStringInCodeRule_DoesNotTrigger_OnConnStrWithoutPassword()
+    {
+        var rule = new ConnectionStringInCodeRule();
+        var ctx = Cs("string conn = \"Server=mydb;Database=myapp;Integrated Security=true;\";");
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
+    [Fact]
+    public void ConnectionStringInCodeRule_DoesNotTrigger_OnConfigReference()
+    {
+        var rule = new ConnectionStringInCodeRule();
+        var ctx = Cs("var conn = config.GetConnectionString(\"Default\");");
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
     private static FileContext Json(string content) =>
         new("config.json", "config.json", content);
 
@@ -125,4 +179,7 @@ public class SecretsRulesTests
     private static FileContext Csproj(string propsXml) =>
         new("App.csproj", "App.csproj",
             $"<Project Sdk=\"Microsoft.NET.Sdk\">{propsXml}</Project>");
+
+    private static FileContext Cs(string code) =>
+        new("App.cs", "App.cs", code);
 }
