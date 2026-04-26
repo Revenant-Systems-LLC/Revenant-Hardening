@@ -9,10 +9,10 @@ public class RegistryRulesTests
     // RSH-REG-001
 
     [Fact]
-    public void HklmWriteRule_Triggers_OnLocalMachineAccess()
+    public void HklmWriteRule_Triggers_OnLocalMachineSetValue()
     {
         var rule = new HklmWriteRule();
-        var ctx = Cs("var key = Registry.LocalMachine.OpenSubKey(\"SOFTWARE\\\\MyApp\");");
+        var ctx = Cs("Registry.LocalMachine.OpenSubKey(\"SOFTWARE\\\\MyApp\", true).SetValue(\"k\", \"v\");");
 
         var findings = rule.Analyze(ctx).ToList();
         Assert.Single(findings);
@@ -20,21 +20,47 @@ public class RegistryRulesTests
     }
 
     [Fact]
-    public void HklmWriteRule_Triggers_OnClassesRootAccess()
+    public void HklmWriteRule_Triggers_OnClassesRootCreateSubKey()
     {
         var rule = new HklmWriteRule();
-        var ctx = Cs("var key = Registry.ClassesRoot.OpenSubKey(\"myapp\");");
+        var ctx = Cs("Registry.ClassesRoot.CreateSubKey(\"myapp\");");
 
         var findings = rule.Analyze(ctx).ToList();
         Assert.Single(findings);
         Assert.Equal("RSH-REG-001", findings[0].RuleId);
+    }
+
+    [Fact]
+    public void HklmWriteRule_Triggers_OnTwoStepWrite()
+    {
+        var rule = new HklmWriteRule();
+        var ctx = Cs("""
+            void Write()
+            {
+                var key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\MyApp", true);
+                key?.SetValue("x", "y");
+            }
+            """);
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.NotEmpty(findings);
+        Assert.All(findings, f => Assert.Equal("RSH-REG-001", f.RuleId));
+    }
+
+    [Fact]
+    public void HklmWriteRule_DoesNotTrigger_OnHklmRead()
+    {
+        var rule = new HklmWriteRule();
+        var ctx = Cs("var key = Registry.LocalMachine.OpenSubKey(\"SOFTWARE\\\\MyApp\");");
+
+        Assert.Empty(rule.Analyze(ctx));
     }
 
     [Fact]
     public void HklmWriteRule_DoesNotTrigger_OnCurrentUser()
     {
         var rule = new HklmWriteRule();
-        var ctx = Cs("var key = Registry.CurrentUser.OpenSubKey(\"SOFTWARE\\\\MyApp\");");
+        var ctx = Cs("Registry.CurrentUser.OpenSubKey(\"SOFTWARE\\\\MyApp\", true).SetValue(\"k\", \"v\");");
 
         Assert.Empty(rule.Analyze(ctx));
     }
@@ -68,6 +94,15 @@ public class RegistryRulesTests
     {
         var rule = new WritableHandleRule();
         var ctx = Cs("var key = Registry.LocalMachine.OpenSubKey(\"SOFTWARE\\\\MyApp\", false);");
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
+    [Fact]
+    public void WritableHandleRule_DoesNotTrigger_OnCurrentUserWritable()
+    {
+        var rule = new WritableHandleRule();
+        var ctx = Cs("var key = Registry.CurrentUser.OpenSubKey(\"SOFTWARE\\\\MyApp\", true);");
 
         Assert.Empty(rule.Analyze(ctx));
     }

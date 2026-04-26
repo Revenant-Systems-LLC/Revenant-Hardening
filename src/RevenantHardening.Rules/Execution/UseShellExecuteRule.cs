@@ -39,6 +39,11 @@ public sealed class UseShellExecuteRule : IRule
             if (lit.Token.ValueText is not ("True" or "true"))
                 continue;
 
+            // Common safe pattern: new ProcessStartInfo { UseShellExecute = true, FileName = "<literal>" }
+            // This is used to open URLs/documents in their default app — not a risky context.
+            if (IsInLiteralFilenameInitializer(assignment))
+                continue;
+
             var line = assignment.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
             yield return new Finding(
@@ -51,5 +56,20 @@ public sealed class UseShellExecuteRule : IRule
                 Fix: "Set UseShellExecute = false and specify the executable path directly. Ensure all arguments are validated or come from trusted sources only."
             );
         }
+    }
+
+    private static bool IsInLiteralFilenameInitializer(AssignmentExpressionSyntax assignment)
+    {
+        var initializer = assignment.Ancestors()
+            .OfType<InitializerExpressionSyntax>()
+            .FirstOrDefault();
+
+        if (initializer is null) return false;
+
+        return initializer.Expressions
+            .OfType<AssignmentExpressionSyntax>()
+            .Any(a =>
+                a.Left is IdentifierNameSyntax { Identifier.Text: "FileName" } &&
+                a.Right is LiteralExpressionSyntax);
     }
 }

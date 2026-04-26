@@ -31,6 +31,12 @@ public sealed class ProcessStartRule : IRule
                 continue;
 
             var args = invocation.ArgumentList.Arguments;
+
+            // Skip Process.Start(new ProcessStartInfo { ... }) — the inline PSI object
+            // is covered by UseShellExecuteRule when UseShellExecute = true is present.
+            if (args.Count == 1 && args[0].Expression is ObjectCreationExpressionSyntax)
+                continue;
+
             var hasNonLiteral = args.Any(a => a.Expression is not LiteralExpressionSyntax);
 
             if (!hasNonLiteral)

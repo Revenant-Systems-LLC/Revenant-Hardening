@@ -40,6 +40,15 @@ public class ExecutionRulesTests
         Assert.Empty(rule.Analyze(ctx));
     }
 
+    [Fact]
+    public void ProcessStartRule_DoesNotTrigger_OnInlineProcessStartInfo()
+    {
+        var rule = new ProcessStartRule();
+        var ctx = Cs("Process.Start(new ProcessStartInfo { FileName = \"notepad.exe\", UseShellExecute = false });");
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
     // RSH-EXEC-002
 
     [Fact]
@@ -60,6 +69,27 @@ public class ExecutionRulesTests
         var ctx = Cs("psi.UseShellExecute = false;");
 
         Assert.Empty(rule.Analyze(ctx));
+    }
+
+    [Fact]
+    public void UseShellExecuteRule_DoesNotTrigger_OnLiteralFilenameInitializer()
+    {
+        // Common safe pattern: open a URL in the default browser
+        var rule = new UseShellExecuteRule();
+        var ctx = Cs("var psi = new ProcessStartInfo { FileName = \"https://example.com\", UseShellExecute = true };");
+
+        Assert.Empty(rule.Analyze(ctx));
+    }
+
+    [Fact]
+    public void UseShellExecuteRule_Triggers_OnVariableFilenameInitializer()
+    {
+        var rule = new UseShellExecuteRule();
+        var ctx = Cs("var psi = new ProcessStartInfo { FileName = userUrl, UseShellExecute = true };");
+
+        var findings = rule.Analyze(ctx).ToList();
+        Assert.Single(findings);
+        Assert.Equal("RSH-EXEC-002", findings[0].RuleId);
     }
 
     // RSH-EXEC-003

@@ -49,7 +49,12 @@ public sealed class WritableHandleRule : IRule
             if (!hasWritableTrue)
                 continue;
 
-            // Check if called on HKLM/HKCR (conservative: flag all writable opens for v0.1)
+            // Only flag when we can see HKLM/HKCR in the receiver chain.
+            // HKCU writable opens are safe for standard users.
+            if (invocation.Expression is MemberAccessExpressionSyntax receiver &&
+                !HklmWriteRule.ChainContainsHklm(receiver.Expression))
+                continue;
+
             var line = invocation.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
             yield return new Finding(
