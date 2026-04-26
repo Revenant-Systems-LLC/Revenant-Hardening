@@ -48,6 +48,14 @@ public class ScanIntegrationTests
     [InlineData("RSH-SEC-003")]
     [InlineData("RSH-SEC-004")]
     [InlineData("RSH-MSIX-004")]
+    [InlineData("RSH-XAML-001")]
+    [InlineData("RSH-XAML-002")]
+    [InlineData("RSH-XAML-003")]
+    [InlineData("RSH-PINVOKE-001")]
+    [InlineData("RSH-PINVOKE-002")]
+    [InlineData("RSH-PINVOKE-003")]
+    [InlineData("RSH-ACL-001")]
+    [InlineData("RSH-ACL-002")]
     public void Scan_CursedApp_FindsExpectedRuleId(string expectedRuleId)
     {
         var options = ScanOptions.Default(FixturePath);

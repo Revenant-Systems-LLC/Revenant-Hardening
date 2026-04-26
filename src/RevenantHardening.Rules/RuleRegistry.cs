@@ -1,8 +1,12 @@
 using RevenantHardening.Core;
+using RevenantHardening.Rules.Acl;
+using RevenantHardening.Rules.Binary;
 using RevenantHardening.Rules.Execution;
 using RevenantHardening.Rules.Msix;
+using RevenantHardening.Rules.PInvoke;
 using RevenantHardening.Rules.Registry;
 using RevenantHardening.Rules.Secrets;
+using RevenantHardening.Rules.Xaml;
 
 namespace RevenantHardening.Rules;
 
@@ -34,5 +38,23 @@ public static class RuleRegistry
         new ResourceSecretRule(),
         new ProjectMetadataSecretRule(),
         new ConnectionStringInCodeRule(),
+
+        // RSH-XAML-*
+        new XamlReaderRule(),
+        new ResourceDictionaryRule(),
+        new XamlCodeElementRule(),
+
+        // RSH-PINVOKE-*
+        new DllImportCharSetRule(),
+        new DllImportDllNameRule(),
+        new DangerousApiRule(),
+
+        // RSH-ACL-*
+        new FileAclRule(),
+        new OpenAccessRuleRule(),
+
+        // RSH-BIN-*
+        new BinarySecretRule(),
+        new BinaryConnectionStringRule(),
     ];
 }
