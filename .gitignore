@@ -407,6 +407,9 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# Claude Code local settings
+.claude/settings.local.json
+
 # RSH generated reports
 report.json
 report.html

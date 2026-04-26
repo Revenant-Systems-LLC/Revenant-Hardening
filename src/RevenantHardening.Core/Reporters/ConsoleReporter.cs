@@ -18,8 +18,8 @@ public sealed class ConsoleReporter(bool roastMode = false) : IReporter
         {
             Console.ForegroundColor = ConsoleColor.Green;
             output.WriteLine(roastMode
-                ? "  No findings. Either your app is clean or you're lucky. Probably lucky."
-                : "  No findings. Good job.");
+                ? "  No findings. Either you're genuinely good at this or your AI got lucky. Either way, don't get smug."
+                : "  No findings. Clean scan.");
             Console.ForegroundColor = prev;
             output.WriteLine();
         }
@@ -87,23 +87,29 @@ public sealed class ConsoleReporter(bool roastMode = false) : IReporter
         Count(Severity.Low);
 
         output.WriteLine();
-
-        if (roastMode)
-            WriteRoast(result, output);
-
+        WriteRoast(result, output, roastMode);
         output.WriteLine();
     }
 
-    private static void WriteRoast(ScanResult result, TextWriter output)
+    private static void WriteRoast(ScanResult result, TextWriter output, bool hard)
     {
-        var msg = result.Grade switch
-        {
-            'A' => "Clean build. Ship it. Carefully.",
-            'B' => "Not bad. A few rough edges, but you're not embarrassing yourself.",
-            'C' => "Your AI assistant phoned this one in. So did you for not reviewing it.",
-            'D' => "This app would last approximately 11 minutes on a corporate network.",
-            _ => "Congratulations. You vibe-coded a security incident. Classic."
-        };
+        var msg = hard
+            ? result.Grade switch
+            {
+                'A' => "A. Either you actually know what you're doing, or you haven't checked in your AWS keys yet. Stay vigilant.",
+                'B' => "B. Solid work. Still wouldn't trust this on a network that matters, but you're not the worst vibe-coder I've seen today.",
+                'C' => "C. Your AI wrote this. You can tell because it works in demos and falls apart under any real threat model.",
+                'D' => "D. This app is one misconfigured registry key away from becoming a conference talk case study.",
+                _ => "F. This isn't a security audit. This is an incident report for something that hasn't happened yet."
+            }
+            : result.Grade switch
+            {
+                'A' => "Clean build. Ship it.",
+                'B' => "A few rough edges. Worth a look before release.",
+                'C' => "Some real issues here. Don't ship without addressing the highs.",
+                'D' => "Significant findings. This needs work before it goes anywhere near production.",
+                _ => "Do not ship this."
+            };
         output.WriteLine($"  {msg}");
     }
 
